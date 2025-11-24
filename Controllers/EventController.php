@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Controllers;
+namespace Controllers;
 
-use App\DAO\EventDAO;
-use App\Models\Event;
+use DAO\EventDAO;
+use Models\Event;
 
 class EventController {
     private function requireAuth() {
