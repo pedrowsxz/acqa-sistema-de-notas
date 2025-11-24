@@ -1,52 +1,72 @@
 <?php
 
-namespace Controllers;
+namespace App\Controllers;
 
-use DAO\EventDAO;
-use DAO\AttendanceDAO;
-use Models\Event;
+use App\DAO\EventDAO;
+use App\Models\Event;
 
 class EventController {
-    public function index() {
+    private function requireAuth() {
+        session_start();
+        if (empty($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
+        return $_SESSION['user_id'];
+    }
+
+    public function dashboard() {
+        $userId = $this->requireAuth();
+        include __DIR__ . '/../Views/dashboard.php';
+    }
+
+    public function list() {
+        $userId = $this->requireAuth();
         $dao = new EventDAO();
-        echo json_encode($dao->listAll());
+        header('Content-Type: application/json');
+        echo json_encode($dao->listByUser($userId));
     }
 
     public function store() {
-        $dados = $_POST;
-        $event = new Event(null, $dados['title'] ?? '', $dados['description'] ?? '', $dados['date'] ?? '', $dados['creator_id'] ?? null);
+        $userId = $this->requireAuth();
+        $title = $_POST['title'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $date = $_POST['date'] ?? null;
+
+        $e = new Event(null, $userId, $title, $description, $date);
         $dao = new EventDAO();
-        $id = $dao->create($event);
+        $id = $dao->create($e);
         echo json_encode(['id' => $id]);
     }
 
     public function show() {
+        $userId = $this->requireAuth();
         $id = $_GET['id'] ?? null;
-        if ($id) {
-            $dao = new EventDAO();
-            $event = $dao->read($id);
-            $attendanceDao = new AttendanceDAO();
-            $attendees = $attendanceDao->listByEvent($id);
-            echo json_encode(['event' => $event, 'attendees' => $attendees]);
-        } else {
-            echo json_encode(['error' => 'ID not provided']);
-        }
+        if (!$id) { echo json_encode(['error' => 'id required']); return; }
+        $dao = new EventDAO();
+        echo json_encode($dao->find($id, $userId));
     }
 
-    public function attend() {
-        $userId = $_POST['user_id'] ?? null;
-        $eventId = $_POST['event_id'] ?? null;
-        if (!$userId || !$eventId) {
-            echo json_encode(['error' => 'user_id and event_id required']);
-            return;
-        }
-        $attendanceDao = new AttendanceDAO();
-        $ok = $attendanceDao->attend($userId, $eventId);
-        if ($ok) echo json_encode(['status' => 'attending']);
-        else echo json_encode(['status' => 'already_attending']);
+    public function update() {
+        $userId = $this->requireAuth();
+        $id = $_POST['id'] ?? null;
+        $title = $_POST['title'] ?? '';
+        $description = $_POST['description'] ?? '';
+        $date = $_POST['date'] ?? null;
+
+        $e = new Event($id, $userId, $title, $description, $date);
+        $dao = new EventDAO();
+        $dao->update($e);
+        echo json_encode(['status' => 'updated']);
     }
 
-    public function form() {
-        include '../Views/events.php';
+    public function destroy() {
+        $userId = $this->requireAuth();
+        $id = $_POST['id'] ?? null;
+        $dao = new EventDAO();
+        $dao->delete($id, $userId);
+        echo json_encode(['status' => 'deleted']);
     }
 }
+
+?>

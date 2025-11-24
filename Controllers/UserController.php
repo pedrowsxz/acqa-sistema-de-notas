@@ -1,10 +1,10 @@
 <?php
 
-namespace Controllers;
+namespace App\Controllers;
 
-use DAO\UserDAO;
-use Models\User;
-use DAO\EventDAO;
+use App\DAO\UserDAO;
+use App\Models\User;
+use App\DAO\EventDAO;
 
 class UserController {
     public function index() {
